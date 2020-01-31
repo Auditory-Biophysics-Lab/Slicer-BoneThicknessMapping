@@ -1,3 +1,4 @@
+![logo](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/BoneThicknessMapping/Resources/Icons/logo.png?raw=true)
 # Bone Thickness Mapping 3D-Slicer Extension
 
 *Developed by HML & SKA Auditory Medical Biophysics Lab at Western University, London, ON, CA*
