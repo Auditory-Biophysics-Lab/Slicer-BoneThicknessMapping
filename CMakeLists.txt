@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(Bone Thickness Mapping)
+project(Bone Thickness Mapping Thickness Mapping)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
 set(EXTENSION_HOMEPAGE "http://slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/BoneThicknessMapping")
 set(EXTENSION_CATEGORY "Shape Analysis")
 set(EXTENSION_CONTRIBUTORS "Evan Simpson (HML & SKA Lab, Western University)")
-set(EXTENSION_DESCRIPTION "This is an example of a simple extension")
+set(EXTENSION_DESCRIPTION "3D Slicer extension that calculates the bone thickness of a volume using VTK ray-casting.")
 # set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/ThicknessMapping.png")
 # set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/BoneThicknessMapping/Screenshots/1.png")
 set(EXTENSION_DEPENDS "NA")
