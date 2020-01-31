@@ -5,6 +5,9 @@
 ## About
 This 3D Slicer extension processes thickness mapping on a slicer volume and overlays a gradient map (with legend) over the rendered volume.
 
+## Screenshot
+![Screenshot](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/Screenshot.PNG?raw=true)
+
 ## Installation
 1. Download repository project folder
 2. Open 3D Slicer and navigate to the module 'Extension Wizard' (Modules>Developer Tools>Extension Wizard)
