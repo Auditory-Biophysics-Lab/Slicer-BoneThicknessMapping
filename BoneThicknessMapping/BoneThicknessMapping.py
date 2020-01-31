@@ -165,7 +165,7 @@ class BoneThicknessMapping(ScriptedLoadableModule):
         self.parent.categories = ["Shape Analysis"]
         self.parent.dependencies = []
         self.parent.contributors = ["Evan Simpson (Western University)"]
-        self.parent.helpText = "Version 1.0-2020.1.31\n" + self.getDefaultModuleDocumentationLink()
+        self.parent.helpText = "The following module will segment and threshold a volume to isolate bone material, cast rays in one direction to calculate the thickness of segmented bone, finally a gradient visualization will be rendered on the 3D segment model.\nVersion 1.0-2020.1.31" + self.getDefaultModuleDocumentationLink()
         self.parent.acknowledgementText = "This module was originally developed by Evan Simpson at The University of Western Ontario in the HML/SKA Auditory Biophysics Lab."
 
 
@@ -213,12 +213,6 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         BoneThicknessMappingLogic.reset_view(RayDirection.L)
         self.update_all()
 
-        # TODO REMOVE TESTING
-        slicer.mrmlScene.Clear()
-        path = slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/Resources/Sample/Images/1601L.img"
-        node = slicer.util.loadVolume(path, returnNode=True)[1]
-        # TODO REMOVE TESTING
-
     # interface build ------------------------------------------------------------------------------
     def build_input_tools(self):
         layout = qt.QVBoxLayout()
@@ -232,7 +226,15 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.infoLabel = qt.QLabel()
         form.addWidget(self.infoLabel)
 
-        layout.addWidget(qt.QLabel('Select an input volume to auto-segment, render, and calculate thickness.'))
+        title = qt.QHBoxLayout()
+        path = slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/Resources/Icons/logo.png"
+        icon = qt.QPixmap(path).scaled(qt.QSize(240, 400), qt.Qt.KeepAspectRatio, qt.Qt.SmoothTransformation)
+        logo = qt.QLabel()
+        logo.setPixmap(icon)
+        title.addWidget(logo)
+        title.addWidget(qt.QLabel('\n\n\n\nSelect an input volume to auto-segment, render, and calculate thickness.'))
+
+        layout.addLayout(title)
         layout.addLayout(form)
         layout.setMargin(10)
         return layout
