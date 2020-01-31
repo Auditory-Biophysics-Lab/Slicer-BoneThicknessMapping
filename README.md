@@ -1,4 +1,4 @@
-#Bone Thickness Mapping 3D-Slicer Extension
+# Bone Thickness Mapping 3D-Slicer Extension
 
 *Developed by HML & SKA Auditory Medical Biophysics Lab at Western University, London, ON, CA*
 
