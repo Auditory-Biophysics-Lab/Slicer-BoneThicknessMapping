@@ -161,7 +161,7 @@ class HitPoint:
 class BoneThicknessMapping(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "Bone Thickness Mapping"
+        self.parent.title = "ABL Bone Thickness Mapping"
         self.parent.categories = ["Shape Analysis"]
         self.parent.dependencies = []
         self.parent.contributors = ["Evan Simpson (Western University)"]

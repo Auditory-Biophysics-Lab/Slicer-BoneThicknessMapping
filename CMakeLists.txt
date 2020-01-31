@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(Bone Thickness Mapping Thickness Mapping)
+project(ABL Bone Thickness Mapping Thickness Mapping)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
