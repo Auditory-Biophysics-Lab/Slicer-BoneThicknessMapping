@@ -140,15 +140,6 @@ class BoneThicknessMappingQuality:
     VERY_HIGH = 'VERY HIGH (ray every 0.25 dimensional units)'
 
 
-class RayDirection:
-    R = 'R'
-    L = 'L'
-    A = 'A'
-    P = 'P'
-    S = 'S'
-    I = 'I'
-
-
 class HitPoint:
     pid = None
     point = None
@@ -185,7 +176,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
 
     # Configuration preferences
     CONFIG_precision = 1.0
-    CONFIG_rayDirection = 'L'
+    CONFIG_rayCastAxis = ctk.ctkAxesWidget.Left
     CONFIG_segmentThresholdRange = [600, 3071]
     CONFIG_regionOfInterest = [-100, 100]
     CONFIG_minMaxAirCell = [0.0, 4.0]
@@ -213,7 +204,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.layout.addLayout(self.build_execution_tools())
         self.layout.addLayout(self.build_result_tools())
         self.layout.addStretch()
-        BoneThicknessMappingLogic.reset_view(RayDirection.L)
+        BoneThicknessMappingLogic.reset_view(ctk.ctkAxesWidget.Left)
         self.update_all()
 
     # interface build ------------------------------------------------------------------------------
@@ -223,7 +214,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.volumeSelector = InterfaceTools.build_volume_selector(on_click=self.update_all)
         box = qt.QHBoxLayout()
         box.addWidget(self.volumeSelector)
-        box.addWidget(InterfaceTools.build_icon_button('/Resources/Icons/fit.png', on_click=lambda: BoneThicknessMappingLogic.reset_view(self.CONFIG_rayDirection), tooltip="Reset 3D view."))
+        box.addWidget(InterfaceTools.build_icon_button('/Resources/Icons/fit.png', on_click=lambda: BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis), tooltip="Reset 3D view."))
         form = qt.QFormLayout()
         form.addRow("Input Volume: ", box)
         self.infoLabel = qt.QLabel()
@@ -254,20 +245,18 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         layout.addRow(group_box)
 
         # ray direction
-        def set_direction(d):
-            self.CONFIG_rayDirection = d
-            # SkullThicknessMappingLogic.reset_view(d)
+        def set_axis(a): self.CONFIG_rayCastAxis = a
         box = qt.QVBoxLayout()
         row1 = qt.QHBoxLayout()
         row1.addStretch()
-        row1.addWidget(InterfaceTools.build_radio_button(RayDirection.R, lambda: set_direction(RayDirection.R), width=100))
-        row1.addWidget(InterfaceTools.build_radio_button(RayDirection.A, lambda: set_direction(RayDirection.A), width=100))
-        row1.addWidget(InterfaceTools.build_radio_button(RayDirection.S, lambda: set_direction(RayDirection.S), width=100))
+        row1.addWidget(InterfaceTools.build_radio_button('R', lambda: set_axis(ctk.ctkAxesWidget.Right), width=100))
+        row1.addWidget(InterfaceTools.build_radio_button('A', lambda: set_axis(ctk.ctkAxesWidget.Anterior), width=100))
+        row1.addWidget(InterfaceTools.build_radio_button('S', lambda: set_axis(ctk.ctkAxesWidget.Superior), width=100))
         row2 = qt.QHBoxLayout()
         row2.addStretch()
-        row2.addWidget(InterfaceTools.build_radio_button(RayDirection.L, lambda: set_direction(RayDirection.L), width=100, checked=True))
-        row2.addWidget(InterfaceTools.build_radio_button(RayDirection.P, lambda: set_direction(RayDirection.P), width=100))
-        row2.addWidget(InterfaceTools.build_radio_button(RayDirection.I, lambda: set_direction(RayDirection.I), width=100))
+        row2.addWidget(InterfaceTools.build_radio_button('L', lambda: set_axis(ctk.ctkAxesWidget.Left), width=100, checked=True))
+        row2.addWidget(InterfaceTools.build_radio_button('P', lambda: set_axis(ctk.ctkAxesWidget.Posterior), width=100))
+        row2.addWidget(InterfaceTools.build_radio_button('I', lambda: set_axis(ctk.ctkAxesWidget.Inferior), width=100))
         box.addLayout(row1)
         box.addLayout(row2)
 
@@ -474,7 +463,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         if self.state is not BoneThicknessMappingState.READY: return
         self.state = BoneThicknessMappingState.EXECUTING
         self.update_status(text='Initializing execution..', progress=0)
-        BoneThicknessMappingLogic.reset_view(self.CONFIG_rayDirection)
+        BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis)
         BoneThicknessMappingLogic.set_scalar_colour_bar_state(0)
         self.modelPolyData = BoneThicknessMappingLogic.process_segmentation(
             threshold_range=self.CONFIG_segmentThresholdRange,
@@ -484,7 +473,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.topLayerPolyData, self.hitPointList = BoneThicknessMappingLogic.rainfall_quad_cast(
             poly_data=self.modelPolyData,
             dimensions=self.volumeSelector.currentNode().GetImageData().GetDimensions(),
-            ray_direction=self.CONFIG_rayDirection,
+            cast_axis=self.CONFIG_rayCastAxis,
             precision=self.CONFIG_precision,
             region_of_interest=self.CONFIG_regionOfInterest,
             update_status=self.update_status
@@ -496,7 +485,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.thicknessScalarArray, self.airCellScalarArray = BoneThicknessMappingLogic.ray_cast_color_thickness(
             poly_data=self.modelPolyData,
             hit_point_list=self.hitPointList,
-            ray_direction=self.CONFIG_rayDirection,
+            cast_axis=self.CONFIG_rayCastAxis,
             dimensions=self.volumeSelector.currentNode().GetImageData().GetDimensions(),
             update_status=self.update_status
         )
@@ -535,7 +524,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         # update scalar bar
         BoneThicknessMappingLogic.set_scalar_colour_bar_state(1, colourNodeId)
         # reset view
-        BoneThicknessMappingLogic.reset_view(self.CONFIG_rayDirection)
+        BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis)
 
     def click_toggle_scalar_bar(self, state):
         if state is 0: BoneThicknessMappingLogic.set_scalar_colour_bar_state(0)
@@ -550,17 +539,10 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/Resources/Sample/'
 
     @staticmethod
-    def reset_view(cast_direction):
+    def reset_view(axis):
         m = slicer.app.layoutManager()
         m.setLayout(16)
         w = m.threeDWidget(0)
-        axis = None
-        if cast_direction is RayDirection.R: axis = ctk.ctkAxesWidget.Right
-        elif cast_direction is RayDirection.L: axis = ctk.ctkAxesWidget.Left
-        elif cast_direction is RayDirection.A: axis = ctk.ctkAxesWidget.Anterior
-        elif cast_direction is RayDirection.P: axis = ctk.ctkAxesWidget.Posterior
-        elif cast_direction is RayDirection.S: axis = ctk.ctkAxesWidget.Superior
-        elif cast_direction is RayDirection.I: axis = ctk.ctkAxesWidget.Inferior
         w.threeDView().lookFromViewAxis(axis)
         # Reset zoom
         w.threeDView().renderWindow().GetRenderers().GetFirstRenderer().ResetCamera()
@@ -647,14 +629,19 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return polyData
 
     @staticmethod
-    def rainfall_quad_cast(poly_data, dimensions, ray_direction, precision, region_of_interest, update_status):
+    def determine_cast_axis_index(cast_axis):
+        castIndex = None
+        if cast_axis in [ctk.ctkAxesWidget.Right, ctk.ctkAxesWidget.Left]: castIndex = 0
+        elif cast_axis in [ctk.ctkAxesWidget.Anterior, ctk.ctkAxesWidget.Posterior]: castIndex = 1
+        elif cast_axis in [ctk.ctkAxesWidget.Superior, ctk.ctkAxesWidget.Inferior]: castIndex = 2
+        return castIndex
+
+    @staticmethod
+    def rainfall_quad_cast(poly_data, dimensions, cast_axis, precision, region_of_interest, update_status):
         # configure ray direction
         dimensions = dimensions[::-1]
-        negated = 1 if ray_direction in [RayDirection.R, RayDirection.A, RayDirection.S] else -1
-        castIndex = None
-        if ray_direction is RayDirection.R or ray_direction is RayDirection.L: castIndex = 0
-        elif ray_direction is RayDirection.A or ray_direction is RayDirection.P: castIndex = 1
-        elif ray_direction is RayDirection.S or ray_direction is RayDirection.I: castIndex = 2
+        negated = 1 if cast_axis in [ctk.ctkAxesWidget.Right, ctk.ctkAxesWidget.Anterior, ctk.ctkAxesWidget.Superior] else -1
+        castIndex = BoneThicknessMappingLogic.determine_cast_axis_index(cast_axis)
         castVector = [0.0, 0.0, 0.0]; castVector[castIndex] = 1.0 * negated
         castPlaneIndices = [0, 1, 2]; castPlaneIndices.remove(castIndex)
         preciseHorizontalBounds, preciseVerticalBounds = int(float(dimensions[castPlaneIndices[0]]) / float(precision)), int(float(dimensions[castPlaneIndices[1]]) / float(precision))
@@ -719,15 +706,9 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return modelNode
 
     @staticmethod
-    def determine_cast_direction_index(ray_direction):
-        if ray_direction is RayDirection.R or ray_direction is RayDirection.L: return 0
-        elif ray_direction is RayDirection.A or ray_direction is RayDirection.P: return 1
-        elif ray_direction is RayDirection.S or ray_direction is RayDirection.I: return 2
-
-    @staticmethod
-    def ray_cast_color_thickness(poly_data, hit_point_list, ray_direction, dimensions, update_status, gradient_scale_factor=10.0):
+    def ray_cast_color_thickness(poly_data, hit_point_list, cast_axis, dimensions, update_status, gradient_scale_factor=10.0):
         # configure ray direction
-        castIndex = BoneThicknessMappingLogic.determine_cast_direction_index(ray_direction)
+        castIndex = BoneThicknessMappingLogic.determine_cast_axis_index(cast_axis)
 
         update_status(text="Building static cell locator...", progress=81)
         cellLocator = vtk.vtkStaticCellLocator()
