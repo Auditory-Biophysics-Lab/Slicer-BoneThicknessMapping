@@ -216,6 +216,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         box.addWidget(self.volumeSelector)
         box.addWidget(InterfaceTools.build_icon_button('/Resources/Icons/fit.png', on_click=lambda: BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis), tooltip="Reset 3D view."))
         form = qt.QFormLayout()
+        form.addRow(qt.QLabel('Select an input volume to auto-segment, render, and calculate thickness.'))
         form.addRow("Input Volume: ", box)
         self.infoLabel = qt.QLabel()
         form.addWidget(self.infoLabel)
@@ -226,8 +227,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         logo = qt.QLabel()
         logo.setPixmap(icon)
         title.addWidget(logo)
-        title.addWidget(qt.QLabel('\n\n\n\nSelect an input volume to auto-segment, render, and calculate thickness.'))
-
+        
         layout.addLayout(title)
         layout.addLayout(form)
         layout.setMargin(10)
