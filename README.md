@@ -1,8 +1,10 @@
-<img alt='logo' src='https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/BoneThicknessMapping/Resources/Icons/logo.png?raw=true' height="200">
-
-# Bone Thickness Mapping Slicer Module
-
-*Developed by HML & SKA Auditory Medical Biophysics Lab at Western University, London, ON, CA*
+<p align="center">
+  <img alt='logo' src='BoneThicknessMapping/Resources/Icons/logo.png' height="200">
+  <br>
+  <b style='font-size: 40px;'>3D Slicer Module</b>
+  <br>
+  <i>Developed by HML & SKA Auditory Medical Biophysics Lab at Western University, London, ON, CA</i>
+</p>
 
 ## About
 This [3D Slicer](https://www.slicer.org/) module calculates bone thickness of a volume and overlays a gradient map (with legend) over the segmented volume in 3D.
