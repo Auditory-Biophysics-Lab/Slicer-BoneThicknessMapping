@@ -552,15 +552,17 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         m.setLayout(16)
         w = m.threeDWidget(0)
         axis = None
-        if cast_direction is RayDirection.R: axis = 1
-        elif cast_direction is RayDirection.L: axis = 2
-        elif cast_direction is RayDirection.A: axis = 3
-        elif cast_direction is RayDirection.P: axis = 4
-        elif cast_direction is RayDirection.S: axis = 5
-        elif cast_direction is RayDirection.I: axis = 6
+        if cast_direction is RayDirection.R: axis = ctk.ctkAxesWidget.Right
+        elif cast_direction is RayDirection.L: axis = ctk.ctkAxesWidget.Left
+        elif cast_direction is RayDirection.A: axis = ctk.ctkAxesWidget.Anterior
+        elif cast_direction is RayDirection.P: axis = ctk.ctkAxesWidget.Posterior
+        elif cast_direction is RayDirection.S: axis = ctk.ctkAxesWidget.Superior
+        elif cast_direction is RayDirection.I: axis = ctk.ctkAxesWidget.Inferior
         w.threeDView().lookFromViewAxis(axis)
+        # Reset zoom
+        w.threeDView().renderWindow().GetRenderers().GetFirstRenderer().ResetCamera()
         c = w.threeDController()
-        for i in xrange(12): c.zoomIn()
+        for i in range(12): c.zoomIn()
 
     @staticmethod
     def process_segmentation(threshold_range, image, update_status):
@@ -634,7 +636,11 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
 
         # Make sure surface mesh cells are consistently oriented
         update_status(text="Retrieving surface mesh...", progress=18)
-        polyData = segmentationNode.GetClosedSurfaceRepresentation(segmentId)
+        if slicer.app.majorVersion == 4 and slicer.app.minorVersion <= 10:
+            polyData = segmentationNode.GetClosedSurfaceRepresentation(segmentId)
+        else:
+            polyData = vtk.vtkPolyData()
+            segmentationNode.GetClosedSurfaceRepresentation(segmentId, polyData)
         return polyData
 
         # # generate labelmap
@@ -677,9 +683,9 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         # cast rays
         update_status(text="Casting " + str(preciseHorizontalBounds*preciseVerticalBounds) + " rays downward...", progress=42); startTime = time.time()
         points, temporaryHitPoint = vtk.vtkPoints(), [0.0, 0.0, 0.0]
-        hitPointMatrix = [[None for i in xrange(preciseHorizontalBounds)] for j in reversed(xrange(preciseVerticalBounds))]
-        for i in reversed(xrange(preciseVerticalBounds)):
-            for j in xrange(preciseHorizontalBounds):
+        hitPointMatrix = [[None for i in range(preciseHorizontalBounds)] for j in reversed(range(preciseVerticalBounds))]
+        for i in reversed(range(preciseVerticalBounds)):
+            for j in range(preciseHorizontalBounds):
                 start, end = build_ray(i, j)
                 res = bspTree.IntersectWithLine(start, end, 0, vtk.reference(0), temporaryHitPoint, [0.0, 0.0, 0.0], vtk.reference(0), vtk.reference(0))
                 if res != 0 and region_of_interest[0] <= temporaryHitPoint[castIndex] < region_of_interest[1]:
@@ -689,8 +695,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         # form cells
         update_status(text="Forming top layer polygons", progress=64)
         cells = vtk.vtkCellArray()
-        for i in xrange(len(hitPointMatrix)-1):
-            for j in xrange(len(hitPointMatrix[i])-1):
+        for i in range(len(hitPointMatrix)-1):
+            for j in range(len(hitPointMatrix[i])-1):
                 hitPoints = [hitPointMatrix[i][j], hitPointMatrix[i+1][j], hitPointMatrix[i+1][j+1], hitPointMatrix[i][j+1]]
                 if None in hitPoints: continue
                 rawNormal = numpy.linalg.solve(numpy.array([hitPoints[0].point, hitPoints[1].point, hitPoints[2].point]), [1, 1, 1])
@@ -731,7 +737,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         castIndex = BoneThicknessMappingLogic.determine_cast_direction_index(ray_direction)
 
         update_status(text="Building intersection object tree...", progress=81)
-        bspTree = vtk.vtkModifiedBSPTree()
+        bspTree = vtk.vtkStaticCellLocator()
         bspTree.SetDataSet(polydata)
         bspTree.BuildLocator()
 
@@ -747,23 +753,39 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             d = d*gradient_scale_factor
             return d
 
-        def interpret_points(points_of_intersection, mode):
-            if mode is BoneThicknessMappingType.THICKNESS:
-                return calculate_distance(points_of_intersection.GetPoint(0), points_of_intersection.GetPoint(points_of_intersection.GetNumberOfPoints() - 1))
-            elif mode is BoneThicknessMappingType.AIR_CELL:
-                return calculate_distance(points_of_intersection.GetPoint(0), points_of_intersection.GetPoint(1))
+        tol=0.000
+        pc = [0,0,0]
+        subId = vtk.reference(0)
+        cellId = vtk.reference(0) 
+        genCell = vtk.vtkGenericCell()
+        p0 = [0,0,0]
+        p1 = [0,0,0]
+        pLast = [0,0,0]
 
         pointsOfIntersection, cellsOfIntersection = vtk.vtkPoints(), vtk.vtkIdList()
         for i, hitPoint in enumerate(hit_point_list):
             stretchFactor = dimensions[castIndex]
             start = [hitPoint.point[0] + hitPoint.normal[0]*stretchFactor, hitPoint.point[1] + hitPoint.normal[1]*stretchFactor, hitPoint.point[2] + hitPoint.normal[2]*stretchFactor]
             end = [hitPoint.point[0] - hitPoint.normal[0]*stretchFactor, hitPoint.point[1] - hitPoint.normal[1]*stretchFactor, hitPoint.point[2] - hitPoint.normal[2]*stretchFactor]
-            bspTree.IntersectWithLine(start, end, 0, pointsOfIntersection, cellsOfIntersection)
-            if pointsOfIntersection.GetNumberOfPoints() < 2: continue
-            skullThicknessScalarArray.InsertTuple1(hitPoint.pid, interpret_points(pointsOfIntersection, BoneThicknessMappingType.THICKNESS))
-            airCellScalarArray.InsertTuple1(hitPoint.pid, interpret_points(pointsOfIntersection, BoneThicknessMappingType.AIR_CELL))
+            bspTree.FindCellsAlongLine(start, end, tol, cellsOfIntersection)
+            distances = []
+            for cellIndex in range(cellsOfIntersection.GetNumberOfIds()):
+                t = vtk.reference(0.0)
+                p=[0.0, 0.0, 0.0]
+                if polydata.GetCell(cellsOfIntersection.GetId(cellIndex)).IntersectWithLine(start, end, tol, t, p, pc, subId) and 0.0 <= t and t <= 1.0:
+                    distances.append([t,p])
+            if len(distances) >= 2:
+                distances = sorted(distances, key=lambda kv: kv[0])
+                p0=distances[0][1]
+                p1=distances[1][1]
+                pLast=distances[-1][1]
+                skullThicknessScalarArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, pLast))
+                airCellScalarArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, p1))
+            else:
+                skullThicknessScalarArray.InsertTuple1(hitPoint.pid, 0)
+                airCellScalarArray.InsertTuple1(hitPoint.pid, 0)
             # update rays casted status
-            if i%500 == 0: update_status(text="Calculating thickness (~" + str(i) + ' rays)', progress=82 + int(round((i*1.0/total*1.0)*18.0)))
+            if i%200 == 0: update_status(text="Calculating thickness (~{0} of {1} rays)".format(i,total), progress=82 + int(round((i*1.0/total*1.0)*18.0)))
         update_status(text="Finished thickness calculation in " + str("%.1f" % (time.time() - startTime)) + "s...", progress=100)
         return skullThicknessScalarArray, airCellScalarArray
 
