@@ -227,7 +227,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         logo = qt.QLabel()
         logo.setPixmap(icon)
         title.addWidget(logo)
-        
+
         layout.addLayout(title)
         layout.addLayout(form)
         layout.setMargin(10)
@@ -241,11 +241,14 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         group_box = qt.QGroupBox('Segment Thresholding')
         group_layout = qt.QFormLayout(group_box)
         threshBox, setThresh = InterfaceTools.build_min_max(self.CONFIG_segmentThresholdRange, step=5.0, decimals=2, lb=-3020, hb=3071, units='')
-        group_layout.addRow("Casting bounds (along cast direction):", threshBox)
+        group_layout.addRow("Otsu threshold range", threshBox)
         layout.addRow(group_box)
 
         # ray direction
-        def set_axis(a): self.CONFIG_rayCastAxis = a
+        def set_axis(a):
+            self.CONFIG_rayCastAxis = a
+            slicer.app.layoutManager().threeDWidget(0).threeDView().lookFromViewAxis(a)
+
         box = qt.QVBoxLayout()
         row1 = qt.QHBoxLayout()
         row1.addStretch()
@@ -682,11 +685,11 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             for j in range(preciseHorizontalBounds):
                 start, end = build_ray(i, j)
                 res = bspTree.IntersectWithLine(start, end, 0, vtk.reference(0), temporaryHitPoint, [0.0, 0.0, 0.0], vtk.reference(0), vtk.reference(0))
-                if res != 0 and region_of_interest[0] <= temporaryHitPoint[castIndex] < region_of_interest[1]:
+                if res != 0: # and region_of_interest[0] <= temporaryHitPoint[castIndex] < region_of_interest[1]:
                     temporaryHitPoint[castIndex] += 0.3 * negated  # raised to improve visibility
                     hitPointMatrix[i][j] = HitPoint(points.InsertNextPoint(temporaryHitPoint), temporaryHitPoint[:])
 
-        # form cells
+        # form quads/cells
         update_status(text="Forming top layer polygons", progress=64)
         cells = vtk.vtkCellArray()
         for i in range(len(hitPointMatrix)-1):
