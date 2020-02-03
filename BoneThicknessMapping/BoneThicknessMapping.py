@@ -12,7 +12,7 @@ from slicer.ScriptedLoadableModule import *
 
 # Interface tools
 class InterfaceTools:
-    def __init__(self, parent):
+    def __init__(self):
         pass
 
     @staticmethod
@@ -30,7 +30,7 @@ class InterfaceTools:
         return d
 
     @staticmethod
-    def build_frame(title):
+    def build_frame():
         g = qt.QFrame()
         g.setFrameStyle(3)
         return g
@@ -73,6 +73,7 @@ class InterfaceTools:
         b = qt.QRadioButton(title)
         b.connect('clicked(bool)', on_click)
         b.setChecked(checked)
+        if tooltip is not None: b.setToolTip(tooltip)
         if width is not None: b.setFixedWidth(width)
         return b
 
@@ -81,7 +82,7 @@ class InterfaceTools:
         b = qt.QLabel(text)
         if width is not None: b.setFixedWidth(width)
         return b
-    
+
     @staticmethod
     def build_icon_button(icon_path, on_click, width=50, tooltip=None):
         path = slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + icon_path
@@ -95,28 +96,28 @@ class InterfaceTools:
 
     @staticmethod
     def build_min_max(initial, decimals=2, step=0.1, lb=0.0, hb=1000.0, units='mm', min_text='MIN: ', max_text='MAX: '):
-        def setMin(value): initial[0] = value
-        def setMax(value): initial[1] = value
+        def set_min(value): initial[0] = value
+        def set_max(value): initial[1] = value
         box = qt.QHBoxLayout()
         box.addStretch()
         box.addWidget(InterfaceTools.build_label(min_text, 40))
-        lowerSb = InterfaceTools.build_spin_box(lb, hb, decimals=decimals, step=step, initial=initial[0], click=setMin, width=80)
+        lowerSb = InterfaceTools.build_spin_box(lb, hb, decimals=decimals, step=step, initial=initial[0], click=set_min, width=80)
         box.addWidget(lowerSb)
         box.addWidget(InterfaceTools.build_label(units, 50))
         box.addWidget(InterfaceTools.build_label(max_text, 40))
-        higherSb = InterfaceTools.build_spin_box(lb, hb, decimals=decimals, step=step, initial=initial[1], click=setMax, width=80)
+        higherSb = InterfaceTools.build_spin_box(lb, hb, decimals=decimals, step=step, initial=initial[1], click=set_max, width=80)
         box.addWidget(higherSb)
         box.addWidget(InterfaceTools.build_label(units, 30))
-        def setBoxes(value=None, enabled=None):
+        def set_boxes(value=None, enabled=None):
             if value is not None:
-                setMin(value[0])
+                set_min(value[0])
                 lowerSb.setValue(value[0])
-                setMax(value[0])
+                set_max(value[0])
                 higherSb.setValue(value[1])
             if enabled is not None:
                 lowerSb.enabled = enabled
                 higherSb.enabled = enabled
-        return box, setBoxes
+        return box, set_boxes
 
 
 class BoneThicknessMappingType:
@@ -161,11 +162,13 @@ class HitPoint:
 class BoneThicknessMapping(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "ABL Bone Thickness Mapping"
+        self.parent.title = "Bone Thickness Mapping"
         self.parent.categories = ["Shape Analysis"]
         self.parent.dependencies = []
         self.parent.contributors = ["Evan Simpson (Western University)"]
-        self.parent.helpText = "The following module will segment and threshold a volume to isolate bone material, cast rays in one direction to calculate the thickness of segmented bone, finally a gradient visualization will be rendered on the 3D segment model.\nVersion 1.0-2020.1.31" + self.getDefaultModuleDocumentationLink()
+        self.parent.helpText = "The following module will segment and threshold a volume to isolate bone material, cast rays in one direction to calculate the thickness of segmented bone, finally a gradient visualization will be rendered on the 3D segment model." \
+                               "\nVersion 1.0-2020.02.03" \
+                               + self.getDefaultModuleDocumentationLink()
         self.parent.acknowledgementText = "This module was originally developed by Evan Simpson at The University of Western Ontario in the HML/SKA Auditory Biophysics Lab."
 
 
@@ -288,7 +291,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         comboBox = qt.QComboBox()
         comboBox.addItems(['Manual', 'BCI 601', 'BCI 602'])
         comboBox.setFixedWidth(350)
-        def currentIndexChanged(string):
+        def current_index_changed(string):
             if string == 'BCI 601':
                 setSkullBoxes([0.0, 8.7], enabled=False)
                 setAirBoxes([0.0, 4.0], enabled=False)
@@ -298,7 +301,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             elif string == 'Manual':
                 setSkullBoxes(enabled=True)
                 setAirBoxes(enabled=True)
-        comboBox.connect("currentIndexChanged(QString)", currentIndexChanged)
+        comboBox.connect("currentIndexChanged(QString)", current_index_changed)
         box = qt.QHBoxLayout()
         box.addStretch()
         box.addWidget(comboBox)
@@ -317,13 +320,13 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         comboBox.addItems([BoneThicknessMappingQuality.VERY_LOW, BoneThicknessMappingQuality.LOW, BoneThicknessMappingQuality.MEDIUM, BoneThicknessMappingQuality.HIGH, BoneThicknessMappingQuality.VERY_HIGH])
         comboBox.setCurrentIndex(2)
         comboBox.setFixedWidth(350)
-        def currentIndexChanged(string):
+        def current_index_changed(string):
             if string == BoneThicknessMappingQuality.VERY_LOW: self.CONFIG_precision = 4.0
             elif string == BoneThicknessMappingQuality.LOW: self.CONFIG_precision = 2.0
             elif string == BoneThicknessMappingQuality.MEDIUM: self.CONFIG_precision = 1.0
             elif string == BoneThicknessMappingQuality.HIGH: self.CONFIG_precision = 0.50
             elif string == BoneThicknessMappingQuality.VERY_HIGH: self.CONFIG_precision = 0.25
-        comboBox.connect("currentIndexChanged(QString)", currentIndexChanged)
+        comboBox.connect("currentIndexChanged(QString)", current_index_changed)
         box = qt.QHBoxLayout()
         box.addStretch()
         box.addWidget(comboBox)
@@ -368,7 +371,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         return layout
 
     def build_result_tools(self):
-        self.resultSection = InterfaceTools.build_frame('Results')
+        self.resultSection = InterfaceTools.build_frame()
 
         self.displayThicknessSelector = InterfaceTools.build_radio_button(BoneThicknessMappingType.THICKNESS, self.click_result_radio, checked=True)
         self.displayFirstAirCellSelector = InterfaceTools.build_radio_button(BoneThicknessMappingType.AIR_CELL, self.click_result_radio)
@@ -479,7 +482,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             update_status=self.update_status
         )
         self.topLayerPolyData, self.hitPointList = BoneThicknessMappingLogic.rainfall_quad_cast(
-            polydata=self.modelPolyData,
+            poly_data=self.modelPolyData,
             dimensions=self.volumeSelector.currentNode().GetImageData().GetDimensions(),
             ray_direction=self.CONFIG_rayDirection,
             precision=self.CONFIG_precision,
@@ -487,11 +490,11 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             update_status=self.update_status
         )
         self.modelNode = BoneThicknessMappingLogic.build_model(
-            polydata=self.topLayerPolyData,
+            poly_data=self.topLayerPolyData,
             update_status=self.update_status
         )
         self.thicknessScalarArray, self.airCellScalarArray = BoneThicknessMappingLogic.ray_cast_color_thickness(
-            polydata=self.modelPolyData,
+            poly_data=self.modelPolyData,
             hit_point_list=self.hitPointList,
             ray_direction=self.CONFIG_rayDirection,
             dimensions=self.volumeSelector.currentNode().GetImageData().GetDimensions(),
@@ -643,18 +646,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             segmentationNode.GetClosedSurfaceRepresentation(segmentId, polyData)
         return polyData
 
-        # # generate labelmap
-        # update_status("Generating labelmap...")
-        # labelmap = slicer.modules.segmentations.logic().ExportSegmentsToLabelmapNode(segmentationNode)
-
-        # Write to STL file
-        # writer = vtk.vtkSTLWriter()
-        # writer.SetInputData(surfaceMesh)
-        # writer.SetFileName("d:/something.stl")
-        # writer.Update()
-
     @staticmethod
-    def rainfall_quad_cast(polydata, dimensions, ray_direction, precision, region_of_interest, update_status):
+    def rainfall_quad_cast(poly_data, dimensions, ray_direction, precision, region_of_interest, update_status):
         # configure ray direction
         dimensions = dimensions[::-1]
         negated = 1 if ray_direction in [RayDirection.R, RayDirection.A, RayDirection.S] else -1
@@ -677,7 +670,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         # build search tree
         update_status(text="Building intersection object tree...", progress=41)
         bspTree = vtk.vtkModifiedBSPTree()
-        bspTree.SetDataSet(polydata)
+        bspTree.SetDataSet(poly_data)
         bspTree.BuildLocator()
 
         # cast rays
@@ -689,7 +682,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
                 start, end = build_ray(i, j)
                 res = bspTree.IntersectWithLine(start, end, 0, vtk.reference(0), temporaryHitPoint, [0.0, 0.0, 0.0], vtk.reference(0), vtk.reference(0))
                 if res != 0 and region_of_interest[0] <= temporaryHitPoint[castIndex] < region_of_interest[1]:
-                    temporaryHitPoint[castIndex] += 0.3 *negated  # raised to improve visibility
+                    temporaryHitPoint[castIndex] += 0.3 * negated  # raised to improve visibility
                     hitPointMatrix[i][j] = HitPoint(points.InsertNextPoint(temporaryHitPoint), temporaryHitPoint[:])
 
         # form cells
@@ -702,11 +695,11 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
                 rawNormal = numpy.linalg.solve(numpy.array([hitPoints[0].point, hitPoints[1].point, hitPoints[2].point]), [1, 1, 1])
                 hitPointMatrix[i][j].normal = rawNormal / numpy.sqrt(numpy.sum(rawNormal**2))
                 v1, v2 = numpy.array(hitPointMatrix[i][j].normal), numpy.array(castVector)
-                degrees = numpy.degrees(numpy.math.atan2(len(numpy.cross(v1, v2)), numpy.dot(v1, v2)))
+                degrees = numpy.degrees(numpy.math.atan2(numpy.cross(v1, v2).shape[0], numpy.dot(v1, v2)))
                 if degrees < 80: cells.InsertNextCell(4, [p.pid for p in hitPoints])
         update_status(text="Finished ray-casting in " + str("%.1f" % (time.time() - startTime)) + "s, found " + str(cells.GetNumberOfCells()) + " cells...", progress=80)
 
-        # build polydata
+        # build poly data
         topLayerPolyData = vtk.vtkPolyData()
         topLayerPolyData.SetPoints(points)
         topLayerPolyData.SetPolys(cells)
@@ -714,10 +707,10 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return topLayerPolyData, [p for d0 in hitPointMatrix for p in d0 if p is not None]
 
     @staticmethod
-    def build_model(polydata, update_status):
+    def build_model(poly_data, update_status):
         update_status(text="Rendering top layer...", progress=20)
         modelNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLModelNode')
-        modelNode.SetAndObservePolyData(polydata)
+        modelNode.SetAndObservePolyData(poly_data)
         modelNode.CreateDefaultDisplayNodes()
         modelDisplayNode = modelNode.GetModelDisplayNode()
         modelDisplayNode.SetFrontfaceCulling(0)
@@ -732,14 +725,14 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         elif ray_direction is RayDirection.S or ray_direction is RayDirection.I: return 2
 
     @staticmethod
-    def ray_cast_color_thickness(polydata, hit_point_list, ray_direction, dimensions, update_status, gradient_scale_factor=10.0):
+    def ray_cast_color_thickness(poly_data, hit_point_list, ray_direction, dimensions, update_status, gradient_scale_factor=10.0):
         # configure ray direction
         castIndex = BoneThicknessMappingLogic.determine_cast_direction_index(ray_direction)
 
-        update_status(text="Building intersection object tree...", progress=81)
-        bspTree = vtk.vtkStaticCellLocator()
-        bspTree.SetDataSet(polydata)
-        bspTree.BuildLocator()
+        update_status(text="Building static cell locator...", progress=81)
+        cellLocator = vtk.vtkStaticCellLocator()
+        cellLocator.SetDataSet(poly_data)
+        cellLocator.BuildLocator()
 
         total = len(hit_point_list)
         update_status(text="Calculating thickness (may take long)...", progress=82); startTime = time.time()
@@ -753,39 +746,29 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             d = d*gradient_scale_factor
             return d
 
-        tol=0.000
-        pc = [0,0,0]
-        subId = vtk.reference(0)
-        cellId = vtk.reference(0) 
-        genCell = vtk.vtkGenericCell()
-        p0 = [0,0,0]
-        p1 = [0,0,0]
-        pLast = [0,0,0]
-
+        tol, pCoords, subId = 0.000, [0, 0, 0], vtk.reference(0)
         pointsOfIntersection, cellsOfIntersection = vtk.vtkPoints(), vtk.vtkIdList()
         for i, hitPoint in enumerate(hit_point_list):
             stretchFactor = dimensions[castIndex]
             start = [hitPoint.point[0] + hitPoint.normal[0]*stretchFactor, hitPoint.point[1] + hitPoint.normal[1]*stretchFactor, hitPoint.point[2] + hitPoint.normal[2]*stretchFactor]
             end = [hitPoint.point[0] - hitPoint.normal[0]*stretchFactor, hitPoint.point[1] - hitPoint.normal[1]*stretchFactor, hitPoint.point[2] - hitPoint.normal[2]*stretchFactor]
-            bspTree.FindCellsAlongLine(start, end, tol, cellsOfIntersection)
+            cellLocator.FindCellsAlongLine(start, end, tol, cellsOfIntersection)
             distances = []
             for cellIndex in range(cellsOfIntersection.GetNumberOfIds()):
                 t = vtk.reference(0.0)
-                p=[0.0, 0.0, 0.0]
-                if polydata.GetCell(cellsOfIntersection.GetId(cellIndex)).IntersectWithLine(start, end, tol, t, p, pc, subId) and 0.0 <= t and t <= 1.0:
-                    distances.append([t,p])
+                p = [0.0, 0.0, 0.0]
+                if poly_data.GetCell(cellsOfIntersection.GetId(cellIndex)).IntersectWithLine(start, end, tol, t, p, pCoords, subId) and 0.0 <= t <= 1.0:
+                    distances.append([t, p])
             if len(distances) >= 2:
                 distances = sorted(distances, key=lambda kv: kv[0])
-                p0=distances[0][1]
-                p1=distances[1][1]
-                pLast=distances[-1][1]
+                p0, p1, pLast = distances[0][1], distances[1][1], distances[-1][1]
                 skullThicknessScalarArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, pLast))
                 airCellScalarArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, p1))
             else:
                 skullThicknessScalarArray.InsertTuple1(hitPoint.pid, 0)
                 airCellScalarArray.InsertTuple1(hitPoint.pid, 0)
             # update rays casted status
-            if i%200 == 0: update_status(text="Calculating thickness (~{0} of {1} rays)".format(i,total), progress=82 + int(round((i*1.0/total*1.0)*18.0)))
+            if i % 200 == 0: update_status(text="Calculating thickness (~{0} of {1} rays)".format(i, total), progress=82 + int(round((i*1.0/total*1.0)*18.0)))
         update_status(text="Finished thickness calculation in " + str("%.1f" % (time.time() - startTime)) + "s...", progress=100)
         return skullThicknessScalarArray, airCellScalarArray
 
