@@ -716,17 +716,19 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         cellLocator.BuildLocator()
 
         total = len(hit_point_list)
-        update_status(text="Calculating thickness (may take long)...", progress=82); startTime = time.time()
-        skullThicknessScalarArray = vtk.vtkUnsignedCharArray()
-        skullThicknessScalarArray.SetName(BoneThicknessMappingType.THICKNESS)
-        airCellScalarArray = vtk.vtkUnsignedCharArray()
-        airCellScalarArray.SetName(BoneThicknessMappingType.AIR_CELL)
+        update_status(text="Calculating thickness (may take long, " + str(total) + " rays)...", progress=82); startTime = time.time()
+
+        def init_array(name):
+            a = vtk.vtkFloatArray()
+            a.SetName(name)
+            return a
 
         def calculate_distance(point1, point2):
             d = numpy.linalg.norm(numpy.array((point1[0], point1[1], point1[2])) - numpy.array((point2[0], point2[1], point2[2])))
             d = d*gradient_scale_factor
             return d
 
+        skullThicknessArray, airCellDistanceArray = init_array(BoneThicknessMappingType.THICKNESS), init_array(BoneThicknessMappingType.AIR_CELL)
         tol, pCoords, subId = 0.000, [0, 0, 0], vtk.reference(0)
         pointsOfIntersection, cellsOfIntersection = vtk.vtkPoints(), vtk.vtkIdList()
         for i, hitPoint in enumerate(hit_point_list):
@@ -743,15 +745,15 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             if len(distances) >= 2:
                 distances = sorted(distances, key=lambda kv: kv[0])
                 p0, p1, pLast = distances[0][1], distances[1][1], distances[-1][1]
-                skullThicknessScalarArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, pLast))
-                airCellScalarArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, p1))
+                skullThicknessArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, pLast))
+                airCellDistanceArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, p1))
             else:
-                skullThicknessScalarArray.InsertTuple1(hitPoint.pid, 0)
-                airCellScalarArray.InsertTuple1(hitPoint.pid, 0)
+                skullThicknessArray.InsertTuple1(hitPoint.pid, 0)
+                airCellDistanceArray.InsertTuple1(hitPoint.pid, 0)
             # update rays casted status
             if i % 200 == 0: update_status(text="Calculating thickness (~{0} of {1} rays)".format(i, total), progress=82 + int(round((i*1.0/total*1.0)*18.0)))
         update_status(text="Finished thickness calculation in " + str("%.1f" % (time.time() - startTime)) + "s...", progress=100)
-        return skullThicknessScalarArray, airCellScalarArray
+        return skullThicknessArray, airCellDistanceArray
 
     @staticmethod
     def load_color_tables():
