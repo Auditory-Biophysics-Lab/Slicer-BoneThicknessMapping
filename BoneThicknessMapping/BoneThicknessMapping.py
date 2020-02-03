@@ -469,6 +469,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.state = BoneThicknessMappingState.EXECUTING
         self.update_status(text='Initializing execution..', progress=0)
         BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis)
+        BoneThicknessMappingLogic.clear_3d_view()
         BoneThicknessMappingLogic.set_scalar_colour_bar_state(0)
         self.modelPolyData = BoneThicknessMappingLogic.process_segmentation(
             threshold_range=self.CONFIG_segmentThresholdRange,
@@ -540,8 +541,6 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
 
 class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
     @staticmethod
-    def sample_folder():
-        return slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/Resources/Sample/'
     def update_input_volume(volume_id):
         for c in ['Red', 'Yellow', 'Green']:
             slicer.app.layoutManager().sliceWidget(c).sliceLogic().GetSliceCompositeNode().SetBackgroundVolumeID(volume_id)
@@ -558,6 +557,11 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         w.threeDView().renderWindow().GetRenderers().GetFirstRenderer().ResetCamera()
         c = w.threeDController()
         for i in range(12): c.zoomIn()
+
+    @staticmethod
+    def clear_3d_view():
+        for n in slicer.mrmlScene.GetNodesByClass("vtkMRMLModelNode"): n.GetDisplayNode().SetVisibility(0)
+        for n in slicer.mrmlScene.GetNodesByClass("vtkMRMLSegmentationNode"): n.GetDisplayNode().SetVisibility(0)
 
     @staticmethod
     def process_segmentation(threshold_range, image, update_status):
