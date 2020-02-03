@@ -211,7 +211,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
     def build_input_tools(self):
         layout = qt.QVBoxLayout()
 
-        self.volumeSelector = InterfaceTools.build_volume_selector(on_click=self.update_all)
+        self.volumeSelector = InterfaceTools.build_volume_selector(on_click=self.click_input_selector)
         box = qt.QHBoxLayout()
         box.addWidget(self.volumeSelector)
         box.addWidget(InterfaceTools.build_icon_button('/Resources/Icons/fit.png', on_click=lambda: BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis), tooltip="Reset 3D view."))
@@ -458,6 +458,11 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         slicer.app.processEvents()
 
     # interface click events ----------------------------------------------------------------------
+    def click_input_selector(self):
+        if self.volumeSelector.currentNode() is not None:
+            BoneThicknessMappingLogic.update_input_volume(self.volumeSelector.currentNode().GetID())
+        self.update_all()
+
     def click_execute(self):
         # TODO add try and catch
         if self.state is not BoneThicknessMappingState.READY: return
@@ -537,6 +542,11 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
     @staticmethod
     def sample_folder():
         return slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/Resources/Sample/'
+    def update_input_volume(volume_id):
+        for c in ['Red', 'Yellow', 'Green']:
+            slicer.app.layoutManager().sliceWidget(c).sliceLogic().GetSliceCompositeNode().SetBackgroundVolumeID(volume_id)
+        logic = slicer.app.layoutManager().mrmlSliceLogics()
+        for i in range(logic.GetNumberOfItems()): logic.GetItemAsObject(i).FitSliceToAll()
 
     @staticmethod
     def reset_view(axis):
