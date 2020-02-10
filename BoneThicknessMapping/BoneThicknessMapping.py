@@ -710,8 +710,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
                 rawNormal = numpy.linalg.solve(numpy.array([hitPoints[0].point, hitPoints[1].point, hitPoints[2].point]), [1, 1, 1])
                 hitPointMatrix[i][j].normal = rawNormal / numpy.sqrt(numpy.sum(rawNormal**2))
                 v1, v2 = numpy.array(hitPointMatrix[i][j].normal), numpy.array(castVector)
-                degrees = numpy.degrees(numpy.math.atan2(numpy.cross(v1, v2).shape[0], numpy.dot(v1, v2)))
-                if degrees < 80: cells.InsertNextCell(4, [p.pid for p in hitPoints])
+                # degrees = numpy.degrees(numpy.math.atan2(numpy.cross(v1, v2).shape[0], numpy.dot(v1, v2)))
+                cells.InsertNextCell(4, [p.pid for p in hitPoints])
         update_status(text="Finished ray-casting in " + str("%.1f" % (time.time() - startTime)) + "s, found " + str(cells.GetNumberOfCells()) + " cells...", progress=80)
 
         # build poly data
