@@ -478,6 +478,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.modelPolyData, self.segmentationBounds = BoneThicknessMappingLogic.process_segmentation(
             threshold_range=self.CONFIG_segmentThresholdRange,
             image=self.volumeSelector.currentNode(),
+            axis=self.CONFIG_rayCastAxis,
             update_status=self.update_status
         )
         self.topLayerPolyData, self.hitPointList = BoneThicknessMappingLogic.rainfall_quad_cast(
@@ -557,18 +558,21 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         m.setLayout(16)
         w = m.threeDWidget(0)
         w.threeDView().lookFromViewAxis(axis)
-        # Reset zoom
         w.threeDView().renderWindow().GetRenderers().GetFirstRenderer().ResetCamera()
-        c = w.threeDController()
-        for i in range(12): c.zoomIn()
+        # c = w.threeDController()
+        # for i in range(12): c.zoomIn()
 
     @staticmethod
     def clear_3d_view():
         for n in slicer.mrmlScene.GetNodesByClass("vtkMRMLModelNode"): n.GetDisplayNode().SetVisibility(0)
         for n in slicer.mrmlScene.GetNodesByClass("vtkMRMLSegmentationNode"): n.GetDisplayNode().SetVisibility(0)
+        # hide 3D cube & labels
+        v = slicer.util.getNode("View1")
+        v.SetBoxVisible(False)
+        v.SetAxisLabelsVisible(False)
 
     @staticmethod
-    def process_segmentation(threshold_range, image, update_status):
+    def process_segmentation(threshold_range, image, axis, update_status):
         # Fix Volume Orientation
         update_status(text="Rotating views to volume plane...", progress=2)
         manager = slicer.app.layoutManager()
@@ -634,6 +638,9 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         # Make segmentation results visible in 3D and set focal
         update_status(text="Rendering...", progress=15)
         segmentationNode.CreateClosedSurfaceRepresentation()
+        BoneThicknessMappingLogic.reset_view(axis)
+
+        # Retrieve segmentation bounds
         bounds = [0, 0, 0, 0, 0, 0]
         segmentationNode.GetBounds(bounds)
 
