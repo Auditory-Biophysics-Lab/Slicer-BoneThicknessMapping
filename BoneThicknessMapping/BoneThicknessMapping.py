@@ -170,6 +170,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
     thicknessScalarArray, airCellScalarArray = None, None
     thicknessColourNode, airCellColourNode = None, None
     modelPolyData = None
+    segmentationBounds = None
     topLayerPolyData = None
     hitPointList = None
     modelNode = None
@@ -238,7 +239,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         layout = qt.QFormLayout(self.configuration_tools)
 
         # threshold
-        group_box = qt.QGroupBox('Segment Thresholding')
+        group_box = qt.QGroupBox('Auto segmenting')
         group_layout = qt.QFormLayout(group_box)
         threshBox, setThresh = InterfaceTools.build_min_max(self.CONFIG_segmentThresholdRange, step=5.0, decimals=2, lb=-3020, hb=3071, units='')
         group_layout.addRow("Otsu threshold range", threshBox)
@@ -474,14 +475,14 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis)
         BoneThicknessMappingLogic.clear_3d_view()
         BoneThicknessMappingLogic.set_scalar_colour_bar_state(0)
-        self.modelPolyData = BoneThicknessMappingLogic.process_segmentation(
+        self.modelPolyData, self.segmentationBounds = BoneThicknessMappingLogic.process_segmentation(
             threshold_range=self.CONFIG_segmentThresholdRange,
             image=self.volumeSelector.currentNode(),
             update_status=self.update_status
         )
         self.topLayerPolyData, self.hitPointList = BoneThicknessMappingLogic.rainfall_quad_cast(
             poly_data=self.modelPolyData,
-            dimensions=self.volumeSelector.currentNode().GetImageData().GetDimensions(),
+            seg_bounds=self.segmentationBounds,
             cast_axis=self.CONFIG_rayCastAxis,
             precision=self.CONFIG_precision,
             region_of_interest=self.CONFIG_regionOfInterest,
@@ -568,8 +569,6 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
 
     @staticmethod
     def process_segmentation(threshold_range, image, update_status):
-        print(threshold_range)
-
         # Fix Volume Orientation
         update_status(text="Rotating views to volume plane...", progress=2)
         manager = slicer.app.layoutManager()
@@ -635,6 +634,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         # Make segmentation results visible in 3D and set focal
         update_status(text="Rendering...", progress=15)
         segmentationNode.CreateClosedSurfaceRepresentation()
+        bounds = [0, 0, 0, 0, 0, 0]
+        segmentationNode.GetBounds(bounds)
 
         # Make sure surface mesh cells are consistently oriented
         update_status(text="Retrieving surface mesh...", progress=18)
@@ -643,7 +644,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         else:
             polyData = vtk.vtkPolyData()
             segmentationNode.GetClosedSurfaceRepresentation(segmentId, polyData)
-        return polyData
+        return polyData, bounds
 
     @staticmethod
     def determine_cast_axis_index(cast_axis):
@@ -654,45 +655,55 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return castIndex
 
     @staticmethod
-    def rainfall_quad_cast(poly_data, dimensions, cast_axis, precision, region_of_interest, update_status):
-        # configure ray direction
-        dimensions = dimensions[::-1]
-        negated = 1 if cast_axis in [ctk.ctkAxesWidget.Right, ctk.ctkAxesWidget.Anterior, ctk.ctkAxesWidget.Superior] else -1
-        castIndex = BoneThicknessMappingLogic.determine_cast_axis_index(cast_axis)
-        castVector = [0.0, 0.0, 0.0]; castVector[castIndex] = 1.0 * negated
-        castPlaneIndices = [0, 1, 2]; castPlaneIndices.remove(castIndex)
-        preciseHorizontalBounds, preciseVerticalBounds = int(float(dimensions[castPlaneIndices[0]]) / float(precision)), int(float(dimensions[castPlaneIndices[1]]) / float(precision))
-
-        def build_ray(i, j):
-            start = [None, None, None]
-            start[castIndex] = dimensions[castIndex] * negated
-            start[castPlaneIndices[0]] = -dimensions[castPlaneIndices[0]]/2.0 + i*precision
-            start[castPlaneIndices[1]] = -dimensions[castPlaneIndices[1]]/2.0 + j*precision
-            end = start[:]; end[castIndex] = end[castIndex] * -1.0
-            return start, end
-
-        # build search tree
+    def rainfall_quad_cast(poly_data, seg_bounds, cast_axis, precision, region_of_interest, update_status):
         update_status(text="Building intersection object tree...", progress=41)
         bspTree = vtk.vtkModifiedBSPTree()
         bspTree.SetDataSet(poly_data)
         bspTree.BuildLocator()
 
+        update_status(text="Calculating segmentation dimensions...", progress=42)
+        negated = 1 if cast_axis in [ctk.ctkAxesWidget.Right, ctk.ctkAxesWidget.Anterior, ctk.ctkAxesWidget.Superior] else -1
+        castIndex = BoneThicknessMappingLogic.determine_cast_axis_index(cast_axis)
+        castVector = [0.0, 0.0, 0.0]
+        castVector[castIndex] = 1.0 * negated
+        castPlaneIndices = [0, 1, 2]
+        castPlaneIndices.remove(castIndex)
+
+        update_status(text="Calculating segmentation cast-plane...", progress=43)
+        depthIncrements = [seg_bounds[castIndex], seg_bounds[castIndex+1]]
+        if cast_axis in [ctk.ctkAxesWidget.Right, ctk.ctkAxesWidget.Posterior, ctk.ctkAxesWidget.Superior]: depthIncrements.reverse()
+        horizontalIncrements = [seg_bounds[castPlaneIndices[0]*2], seg_bounds[castPlaneIndices[0]*2+1]]
+        verticalIncrements = [seg_bounds[castPlaneIndices[1]*2],  seg_bounds[castPlaneIndices[1]*2+1]]
+        castPlaneIncrements = [
+            int(abs(horizontalIncrements[0] - horizontalIncrements[1])/precision),
+            int(abs(verticalIncrements[0] - verticalIncrements[1])/precision),
+        ]
+
+        def build_ray(i, j):
+            start = [None, None, None]
+            start[castIndex] = depthIncrements[0] + negated*100
+            start[castPlaneIndices[0]] = horizontalIncrements[0] + i*precision
+            start[castPlaneIndices[1]] = verticalIncrements[0] + j*precision
+            end = start[:]
+            end[castIndex] = depthIncrements[1] - negated*100
+            return start, end
+
         # cast rays
-        update_status(text="Casting " + str(preciseHorizontalBounds*preciseVerticalBounds) + " rays downward...", progress=42); startTime = time.time()
+        update_status(text="Casting " + str(int(castPlaneIncrements[0]*castPlaneIncrements[1])) + " rays...", progress=44); startTime = time.time()
         points, temporaryHitPoint = vtk.vtkPoints(), [0.0, 0.0, 0.0]
-        hitPointMatrix = [[None for i in range(preciseHorizontalBounds)] for j in reversed(range(preciseVerticalBounds))]
-        for i in reversed(range(preciseVerticalBounds)):
-            for j in range(preciseHorizontalBounds):
+        hitPointMatrix = [[None for j in range(castPlaneIncrements[1])] for i in range(castPlaneIncrements[0])]
+        for i in range(len(hitPointMatrix)):
+            for j in range(len(hitPointMatrix[i])):
                 start, end = build_ray(i, j)
                 res = bspTree.IntersectWithLine(start, end, 0, vtk.reference(0), temporaryHitPoint, [0.0, 0.0, 0.0], vtk.reference(0), vtk.reference(0))
-                if res != 0: # and region_of_interest[0] <= temporaryHitPoint[castIndex] < region_of_interest[1]:
+                if res != 0 and region_of_interest[0] <= temporaryHitPoint[castIndex] < region_of_interest[1]:
                     temporaryHitPoint[castIndex] += 0.3 * negated  # raised to improve visibility
                     hitPointMatrix[i][j] = HitPoint(points.InsertNextPoint(temporaryHitPoint), temporaryHitPoint[:])
 
         # form quads/cells
         update_status(text="Forming top layer polygons", progress=64)
         cells = vtk.vtkCellArray()
-        for i in range(len(hitPointMatrix)-1):
+        for i in range(len(hitPointMatrix)-1):  # -1 as the end row/col will be taken into account
             for j in range(len(hitPointMatrix[i])-1):
                 hitPoints = [hitPointMatrix[i][j], hitPointMatrix[i+1][j], hitPointMatrix[i+1][j+1], hitPointMatrix[i][j+1]]
                 if None in hitPoints: continue
