@@ -18,7 +18,7 @@ This [3D Slicer](https://www.slicer.org/) module calculates bone thickness of a 
 6. Render thickness map with a gradient map on the surface of the bone model
 
 ## Screenshot
-![Screenshot](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/images/general_screenshot.png?raw=true)
+![Screenshot](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/general_screenshot.png?raw=true)
 
 ## Installation
 1. Download repository project folder
@@ -30,15 +30,15 @@ This [3D Slicer](https://www.slicer.org/) module calculates bone thickness of a 
 ## Basic Tutorial 
 1. In 3D-Slicer, navigate to the **Sample Data** module
 2. Select the "CBCTDentalSurgery" data set (Slicer will then download and import this set)
-> ![Sample load](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/sample_load.png?raw=true)
+> ![Sample load](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/sample_load.png?raw=true)
 3. Open the **Bone Thickness Mapping** module via **Modules>Shape Analysis>Thickness Mapping**
-> ![Module select](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/module_select.png?raw=true)
+> ![Module select](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/module_select.png?raw=true)
 4. Using the input volume selector, select either the PreDentalSurgery or PostDentalSurgery volume
-> ![Input](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/input.png?raw=true)
+> ![Input](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/input.png?raw=true)
 5. Expand the configuration panel and input the following:
 > Otsu threshold range: MIN of 611.0, MAX of 4000.0 <br>
 > Cast direction: 'A' <br>
 > (optional) Render quality: 'High' <br>
->> ![Config](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/config.png?raw=true)
+>> ![Config](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/config.png?raw=true)
 6. Click the 'Execute' button. Once completed the following result should be displayed:
-> ![Complete](https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/complete.png?raw=true)
+> ![Complete](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/complete.png?raw=true)
