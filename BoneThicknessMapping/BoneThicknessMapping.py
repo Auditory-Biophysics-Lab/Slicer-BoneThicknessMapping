@@ -241,7 +241,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         # threshold
         group_box = qt.QGroupBox('Auto segmenting')
         group_layout = qt.QFormLayout(group_box)
-        threshBox, setThresh = InterfaceTools.build_min_max(self.CONFIG_segmentThresholdRange, step=5.0, decimals=2, lb=-3020, hb=3071, units='')
+        threshBox, setThresh = InterfaceTools.build_min_max(self.CONFIG_segmentThresholdRange, step=5.0, decimals=2, lb=-4000, hb=4000, units='')
         group_layout.addRow("Otsu threshold range", threshBox)
         layout.addRow(group_box)
 
