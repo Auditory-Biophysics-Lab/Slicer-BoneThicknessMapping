@@ -7,6 +7,7 @@ import time
 import qt
 import vtk
 import colorsys
+import itertools
 from slicer.ScriptedLoadableModule import *
 
 
@@ -138,6 +139,7 @@ class BoneThicknessMappingQuality:
     MEDIUM = 'MEDIUM (ray every 1 dimensional unit)'
     HIGH = 'HIGH (ray every 0.5 dimensional units)'
     VERY_HIGH = 'VERY HIGH (ray every 0.25 dimensional units)'
+    EXTREME = 'EXTREME (ray every 0.125 dimensional units)'
 
 
 class HitPoint:
@@ -158,8 +160,7 @@ class BoneThicknessMapping(ScriptedLoadableModule):
         self.parent.dependencies = []
         self.parent.contributors = ["Evan Simpson (Western University)"]
         self.parent.helpText = "The following module will segment and threshold a volume to isolate bone material, cast rays in one direction to calculate the thickness of segmented bone, finally a gradient visualization will be rendered on the 3D segment model." \
-                               "\nVersion 1.0-2020.02.03" \
-                               + self.getDefaultModuleDocumentationLink()
+                               "\n[Version 1.1-2020.04.30]"
         self.parent.acknowledgementText = "This module was originally developed by Evan Simpson at The University of Western Ontario in the HML/SKA Auditory Biophysics Lab."
 
 
@@ -182,6 +183,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
     CONFIG_regionOfInterest = [-100, 100]
     CONFIG_minMaxAirCell = [0.0, 4.0]
     CONFIG_minMaxSkullThickness = [0.0, 8.7]
+    CONFIG_mmOfAirPastBone = 4.0
 
     # UI members (in order of appearance) --------------
     infoLabel = None
@@ -250,7 +252,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             self.CONFIG_rayCastAxis = a
             slicer.app.layoutManager().threeDWidget(0).threeDView().lookFromViewAxis(a)
 
-        box = qt.QVBoxLayout()
+        dirBox = qt.QVBoxLayout()
         row1 = qt.QHBoxLayout()
         row1.addStretch()
         row1.addWidget(InterfaceTools.build_radio_button('R', lambda: set_axis(ctk.ctkAxesWidget.Right), width=100))
@@ -261,8 +263,15 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         row2.addWidget(InterfaceTools.build_radio_button('L', lambda: set_axis(ctk.ctkAxesWidget.Left), width=100, checked=True))
         row2.addWidget(InterfaceTools.build_radio_button('P', lambda: set_axis(ctk.ctkAxesWidget.Posterior), width=100))
         row2.addWidget(InterfaceTools.build_radio_button('I', lambda: set_axis(ctk.ctkAxesWidget.Inferior), width=100))
-        box.addLayout(row1)
-        box.addLayout(row2)
+        dirBox.addLayout(row1)
+        dirBox.addLayout(row2)
+
+        # mm of air afterbone
+        airBox = qt.QHBoxLayout()
+        def set_air(mm): self.CONFIG_mmOfAirPastBone = mm
+        airBox.addStretch()
+        airBox.addWidget(InterfaceTools.build_spin_box(0.0, 1000.0, decimals=2, click=set_air, step=0.1, initial=self.CONFIG_mmOfAirPastBone, width=260))
+        airBox.addWidget(InterfaceTools.build_label("mm", width=30))
 
         # region of interest
         roiBox, setRoi = InterfaceTools.build_min_max(self.CONFIG_regionOfInterest, step=1.0, decimals=0, lb=-1000, hb=1000, units='units')
@@ -270,7 +279,8 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         # add ray-casting box
         group_box = qt.QGroupBox('Ray-casting')
         group_layout = qt.QFormLayout(group_box)
-        group_layout.addRow("Cast direction: ", box)
+        group_layout.addRow("Cast direction: ", dirBox)
+        group_layout.addRow("Air allowance after bone: ", airBox)
         group_layout.addRow("Casting bounds (along cast direction):", roiBox)
         layout.addRow(InterfaceTools.build_vertical_space())
         layout.addRow(group_box)
@@ -310,7 +320,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
 
         # quality
         comboBox = qt.QComboBox()
-        comboBox.addItems([BoneThicknessMappingQuality.VERY_LOW, BoneThicknessMappingQuality.LOW, BoneThicknessMappingQuality.MEDIUM, BoneThicknessMappingQuality.HIGH, BoneThicknessMappingQuality.VERY_HIGH])
+        comboBox.addItems([BoneThicknessMappingQuality.VERY_LOW, BoneThicknessMappingQuality.LOW, BoneThicknessMappingQuality.MEDIUM, BoneThicknessMappingQuality.HIGH, BoneThicknessMappingQuality.VERY_HIGH, BoneThicknessMappingQuality.EXTREME])
         comboBox.setCurrentIndex(2)
         comboBox.setFixedWidth(350)
         def current_index_changed(string):
@@ -319,6 +329,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             elif string == BoneThicknessMappingQuality.MEDIUM: self.CONFIG_precision = 1.0
             elif string == BoneThicknessMappingQuality.HIGH: self.CONFIG_precision = 0.50
             elif string == BoneThicknessMappingQuality.VERY_HIGH: self.CONFIG_precision = 0.25
+            elif string == BoneThicknessMappingQuality.EXTREME: self.CONFIG_precision = 0.125
         comboBox.connect("currentIndexChanged(QString)", current_index_changed)
         box = qt.QHBoxLayout()
         box.addStretch()
@@ -498,6 +509,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             hit_point_list=self.hitPointList,
             cast_axis=self.CONFIG_rayCastAxis,
             dimensions=self.volumeSelector.currentNode().GetImageData().GetDimensions(),
+            mm_of_air_past_bone=self.CONFIG_mmOfAirPastBone,
             update_status=self.update_status
         )
         self.thicknessColourNode, self.airCellColourNode = BoneThicknessMappingLogic.build_color_tables(
@@ -703,6 +715,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             for j in range(len(hitPointMatrix[i])):
                 start, end = build_ray(i, j)
                 res = bspTree.IntersectWithLine(start, end, 0, vtk.reference(0), temporaryHitPoint, [0.0, 0.0, 0.0], vtk.reference(0), vtk.reference(0))
+                # if hit is found, and the top hitpoint is within ROI bounds
                 if res != 0 and region_of_interest[0] <= temporaryHitPoint[castIndex] < region_of_interest[1]:
                     temporaryHitPoint[castIndex] += 0.3 * negated  # raised to improve visibility
                     hitPointMatrix[i][j] = HitPoint(points.InsertNextPoint(temporaryHitPoint), temporaryHitPoint[:])
@@ -713,10 +726,19 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         for i in range(len(hitPointMatrix)-1):  # -1 as the end row/col will be taken into account
             for j in range(len(hitPointMatrix[i])-1):
                 hitPoints = [hitPointMatrix[i][j], hitPointMatrix[i+1][j], hitPointMatrix[i+1][j+1], hitPointMatrix[i][j+1]]
+                # check if full quad
                 if None in hitPoints: continue
+                # check if area is not extremely large
+                d1 = numpy.linalg.norm(numpy.array(hitPoints[0].point)-numpy.array(hitPoints[1].point))
+                d2 = numpy.linalg.norm(numpy.array(hitPoints[0].point)-numpy.array(hitPoints[2].point))
+                d3 = numpy.linalg.norm(numpy.array(hitPoints[0].point)-numpy.array(hitPoints[3].point))
+                m = precision*6
+                if d1 > m or d2 > m or d3 > m: continue
+                # calculate normals
                 rawNormal = numpy.linalg.solve(numpy.array([hitPoints[0].point, hitPoints[1].point, hitPoints[2].point]), [1, 1, 1])
                 hitPointMatrix[i][j].normal = rawNormal / numpy.sqrt(numpy.sum(rawNormal**2))
-                v1, v2 = numpy.array(hitPointMatrix[i][j].normal), numpy.array(castVector)
+                # # check if quad is acceptable by normal vs. cast vector
+                # v1, v2 = numpy.array(hitPointMatrix[i][j].normal), numpy.array(castVector)
                 # degrees = numpy.degrees(numpy.math.atan2(numpy.cross(v1, v2).shape[0], numpy.dot(v1, v2)))
                 cells.InsertNextCell(4, [p.pid for p in hitPoints])
         update_status(text="Finished ray-casting in " + str("%.1f" % (time.time() - startTime)) + "s, found " + str(cells.GetNumberOfCells()) + " cells...", progress=80)
@@ -741,8 +763,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return modelNode
 
     @staticmethod
-    def ray_cast_color_thickness(poly_data, hit_point_list, cast_axis, dimensions, update_status, gradient_scale_factor=10.0):
-        # configure ray direction
+    def ray_cast_color_thickness(poly_data, hit_point_list, cast_axis, dimensions, mm_of_air_past_bone, update_status, gradient_scale_factor=10.0):
+        # ray direction cast axis index
         castIndex = BoneThicknessMappingLogic.determine_cast_axis_index(cast_axis)
 
         update_status(text="Building static cell locator...", progress=81)
@@ -757,6 +779,17 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             a = vtk.vtkFloatArray()
             a.SetName(name)
             return a
+
+        def interpret_distance(points):
+            firstIn, lastOut = points[0], points[1]
+            if len(points) > 2:
+                for inOutPair in itertools.izip(*[iter(points[2:])] * 2):
+                    # TODO incorporate cast bounds
+                    # if newIn[1][cast_axis] < minBound and newOut[1][cast_axis] < minBound
+                    if calculate_distance(lastOut[1], inOutPair[0][1]) < mm_of_air_past_bone*gradient_scale_factor: lastOut = inOutPair[1]
+                return calculate_distance(firstIn[1], lastOut[1])
+            else:
+                return calculate_distance(firstIn[1], points[-1][1])
 
         def calculate_distance(point1, point2):
             d = numpy.linalg.norm(numpy.array((point1[0], point1[1], point1[2])) - numpy.array((point2[0], point2[1], point2[2])))
@@ -780,7 +813,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             if len(distances) >= 2:
                 distances = sorted(distances, key=lambda kv: kv[0])
                 p0, p1, pLast = distances[0][1], distances[1][1], distances[-1][1]
-                skullThicknessArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, pLast))
+                skullThicknessArray.InsertTuple1(hitPoint.pid, interpret_distance(distances))
+                # skullThicknessArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, pLast))
                 airCellDistanceArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, p1))
             else:
                 skullThicknessArray.InsertTuple1(hitPoint.pid, 0)
