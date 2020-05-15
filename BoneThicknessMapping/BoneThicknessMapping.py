@@ -876,13 +876,13 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         slicer.util.findChildren(colorWidget, 'UseColorNameAsLabelCheckBox')[0].setChecked(True)
 
 
-class SkullThicknessMappingTest(ScriptedLoadableModuleTest):
-    def setUp(self):
-        slicer.mrmlScene.Clear(0)
+# class SkullThicknessMappingTest(ScriptedLoadableModuleTest):
+#     def setUp(self):
+#         slicer.mrmlScene.Clear(0)
 
-    def runTest(self):
-        self.setUp()
-        self.test_SkullThicknessMapping1()
+#     def runTest(self):
+#         self.setUp()
+#         self.test_SkullThicknessMapping1()
 
-    def test_SkullThicknessMapping1(self):
-        pass
+#     def test_SkullThicknessMapping1(self):
+#         pass
