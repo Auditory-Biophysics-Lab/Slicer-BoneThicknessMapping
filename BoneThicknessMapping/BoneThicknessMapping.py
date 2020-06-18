@@ -159,7 +159,7 @@ class BoneThicknessMapping(ScriptedLoadableModule):
         self.parent.dependencies = []
         self.parent.contributors = ["Evan Simpson (Western University)"]
         self.parent.helpText = "The following module will segment and threshold a volume to isolate bone material, cast rays in one direction to calculate the thickness of segmented bone, finally a gradient visualization will be rendered on the 3D segment model." \
-                               "\n[Version 1.1-2020.04.30]"
+                               "\n[Version 1.2-2020.06.18]"
         self.parent.acknowledgementText = "This module was originally developed by Evan Simpson at The University of Western Ontario in the HML/SKA Auditory Biophysics Lab."
 
 
