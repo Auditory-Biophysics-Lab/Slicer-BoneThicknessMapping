@@ -7,7 +7,6 @@ import time
 import qt
 import vtk
 import colorsys
-import itertools
 from slicer.ScriptedLoadableModule import *
 
 
@@ -783,7 +782,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         def interpret_distance(points):
             firstIn, lastOut = points[0], points[1]
             if len(points) > 2:
-                for inOutPair in itertools.izip(*[iter(points[2:])] * 2):
+                for inOutPair in zip(*[iter(points[2:])] * 2):
                     # TODO incorporate cast bounds
                     # if newIn[1][cast_axis] < minBound and newOut[1][cast_axis] < minBound
                     if calculate_distance(lastOut[1], inOutPair[0][1]) < mm_of_air_past_bone*gradient_scale_factor: lastOut = inOutPair[1]
