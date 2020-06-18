@@ -112,7 +112,7 @@ class InterfaceTools:
             if value is not None:
                 set_min(value[0])
                 lowerSb.setValue(value[0])
-                set_max(value[0])
+                set_max(value[1])
                 higherSb.setValue(value[1])
             if enabled is not None:
                 lowerSb.enabled = enabled
@@ -208,6 +208,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         self.layout.addStretch()
         BoneThicknessMappingLogic.reset_view(ctk.ctkAxesWidget.Left)
         self.update_all()
+        slicer.app.aboutToQuit.connect(self.release_memory)
 
     # interface build ------------------------------------------------------------------------------
     def build_input_tools(self):
@@ -546,7 +547,7 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         # update scalar bar
         BoneThicknessMappingLogic.set_scalar_colour_bar_state(1, colourNodeId)
         # reset view
-        BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis)
+        # BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis)
 
     def click_toggle_scalar_bar(self, state):
         if state is 0: BoneThicknessMappingLogic.set_scalar_colour_bar_state(0)
@@ -554,6 +555,10 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             if self.displayThicknessSelector.isChecked(): BoneThicknessMappingLogic.set_scalar_colour_bar_state(1, self.thicknessColourNode)
             elif self.displayFirstAirCellSelector.isChecked(): BoneThicknessMappingLogic.set_scalar_colour_bar_state(1, self.airCellColourNode)
 
+    def release_memory(self):
+        # volume selector, aircellscalar, thicknessscallar,
+
+        pass
 
 class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
     @staticmethod
@@ -811,10 +816,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
                     distances.append([t, p])
             if len(distances) >= 2:
                 distances = sorted(distances, key=lambda kv: kv[0])
-                p0, p1, pLast = distances[0][1], distances[1][1], distances[-1][1]
                 skullThicknessArray.InsertTuple1(hitPoint.pid, interpret_distance(distances))
-                # skullThicknessArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, pLast))
-                airCellDistanceArray.InsertTuple1(hitPoint.pid, calculate_distance(p0, p1))
+                airCellDistanceArray.InsertTuple1(hitPoint.pid, calculate_distance(distances[0][1], distances[1][1]))
             else:
                 skullThicknessArray.InsertTuple1(hitPoint.pid, 0)
                 airCellDistanceArray.InsertTuple1(hitPoint.pid, 0)
@@ -822,14 +825,6 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
             if i % 200 == 0: update_status(text="Calculating thickness (~{0} of {1} rays)".format(i, total), progress=82 + int(round((i*1.0/total*1.0)*18.0)))
         update_status(text="Finished thickness calculation in " + str("%.1f" % (time.time() - startTime)) + "s...", progress=100)
         return skullThicknessArray, airCellDistanceArray
-
-    @staticmethod
-    def load_color_tables():
-        path = slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/Resources/Tables/ThicknessGradient.txt"
-        thicknessTable = slicer.util.loadColorTable(path, returnNode=True)[1]
-        path = slicer.os.path.dirname(slicer.os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/Resources/Tables/AirCellGradient.txt"
-        airCellTable = slicer.util.loadColorTable(path, returnNode=True)[1]
-        return thicknessTable, airCellTable
 
     @staticmethod
     def build_color_table(name, table_max):
@@ -846,6 +841,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
 
     @staticmethod
     def build_color_tables(minmax_thickness, minmax_air_cell, gradient_scale_factor=10.0):
+        print(minmax_air_cell)
+
         def calculate_and_set_colour(table, index, hue=0.0, sat=1.0, val=1.0):
             rgb = colorsys.hsv_to_rgb(hue, sat, val)
             table.SetColor(index, str(index/gradient_scale_factor) + ' mm', rgb[0], rgb[1], rgb[2], 1.0)
@@ -859,9 +856,9 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         for i in range(ix[0], ix[-1]): calculate_and_set_colour(thicknessTable, i, hue=p(i, ix[-1], ix[0]) * 0.278, sat=0.9, val=0.9)
 
         # air cell table
-        ix = [int(i) for i in [minmax_air_cell[0]*gradient_scale_factor, (minmax_air_cell[1])*gradient_scale_factor + 1]]
-        airCellTable = BoneThicknessMappingLogic.build_color_table('AirCellColorMap', ix[-1])
-        for i in range(ix[0], ix[-1]): calculate_and_set_colour(airCellTable, i, hue=0.696 - p(i, ix[-1], ix[0]) * 0.571, sat=0.9, val=0.9)
+        iy = [int(i) for i in [minmax_air_cell[0]*gradient_scale_factor, (minmax_air_cell[1])*gradient_scale_factor + 1]]
+        airCellTable = BoneThicknessMappingLogic.build_color_table('AirCellColorMap', iy[-1])
+        for i in range(iy[0], iy[-1]): calculate_and_set_colour(airCellTable, i, hue=0.696 - p(i, iy[-1], iy[0]) * 0.571, sat=0.9, val=0.9)
 
         return thicknessTable, airCellTable
 
@@ -873,7 +870,6 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         if state is 0 or color_node_id is None: return
         slicer.util.findChildren(colorWidget, 'ColorTableComboBox')[0].setCurrentNodeID(color_node_id)
         slicer.util.findChildren(colorWidget, 'UseColorNameAsLabelCheckBox')[0].setChecked(True)
-
 
 class SkullThicknessMappingTest(ScriptedLoadableModuleTest):
     def setUp(self):
