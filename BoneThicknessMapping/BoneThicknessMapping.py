@@ -512,10 +512,11 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             mm_of_air_past_bone=self.CONFIG_mmOfAirPastBone,
             update_status=self.update_status
         )
-        self.thicknessColourNode, self.airCellColourNode = BoneThicknessMappingLogic.build_color_tables(
+        self.thicknessColourNode, self.airCellColourNode = BoneThicknessMappingLogic.build_color_table_nodes(
             minmax_thickness=self.CONFIG_minMaxSkullThickness,
             minmax_air_cell=self.CONFIG_minMaxAirCell
         )
+        # finalize
         self.click_result_radio()
         self.state = BoneThicknessMappingState.FINISHED
         self.update_status(progress=100)
@@ -556,9 +557,40 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             elif self.displayFirstAirCellSelector.isChecked(): BoneThicknessMappingLogic.set_scalar_colour_bar_state(1, self.airCellColourNode)
 
     def release_memory(self):
-        # volume selector, aircellscalar, thicknessscallar,
 
-        pass
+        # UI
+        self.infoLabel = None
+        self.volumeSelector = None
+        self.configuration_tools = None
+        self.statusLabel = None
+        self.executeButton = None
+        self.progressBar = None
+        self.finishButton = None
+        self.resultSection = None
+        self.displayThicknessSelector = None
+        self.displayFirstAirCellSelector = None
+        self.displayScalarBarCheckbox = None
+
+        # Config
+        self.CONFIG_precision = None
+        self.CONFIG_rayCastAxis = None
+        self.CONFIG_segmentThresholdRange = None
+        self.CONFIG_regionOfInterest = None
+        self.CONFIG_minMaxAirCell = None
+        self.CONFIG_minMaxSkullThickness = None
+        self.CONFIG_mmOfAirPastBone = None
+
+        # Data
+        self.thicknessScalarArray, self.airCellScalarArray = None, None
+        self.thicknessColourNode, self.airCellColourNode = None, None
+        self.modelPolyData = None
+        self.segmentationBounds = None
+        self.topLayerPolyData = None
+        self.hitPointList = None
+        self.modelNode = None
+
+
+
 
 class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
     @staticmethod
@@ -667,6 +699,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         else:
             polyData = vtk.vtkPolyData()
             segmentationNode.GetClosedSurfaceRepresentation(segmentId, polyData)
+
         return polyData, bounds
 
     @staticmethod
@@ -827,7 +860,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return skullThicknessArray, airCellDistanceArray
 
     @staticmethod
-    def build_color_table(name, table_max):
+    def build_color_table_node(name, table_max):
         table = slicer.vtkMRMLColorTableNode()
         table.SetName(name)
         table.SetHideFromEditors(0)
@@ -840,7 +873,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         return table
 
     @staticmethod
-    def build_color_tables(minmax_thickness, minmax_air_cell, gradient_scale_factor=10.0):
+    def build_color_table_nodes(minmax_thickness, minmax_air_cell, gradient_scale_factor=10.0):
         print(minmax_air_cell)
 
         def calculate_and_set_colour(table, index, hue=0.0, sat=1.0, val=1.0):
@@ -852,15 +885,15 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
 
         # thickness table
         ix = [int(i) for i in [minmax_thickness[0]*gradient_scale_factor, (minmax_thickness[1])*gradient_scale_factor + 1]]
-        thicknessTable = BoneThicknessMappingLogic.build_color_table('ThicknessColorMap', ix[-1])
-        for i in range(ix[0], ix[-1]): calculate_and_set_colour(thicknessTable, i, hue=p(i, ix[-1], ix[0]) * 0.278, sat=0.9, val=0.9)
+        thicknessTableNode = BoneThicknessMappingLogic.build_color_table_node('ThicknessColorMap', ix[-1])
+        for i in range(ix[0], ix[-1]): calculate_and_set_colour(thicknessTableNode, i, hue=p(i, ix[-1], ix[0]) * 0.278, sat=0.9, val=0.9)
 
         # air cell table
         iy = [int(i) for i in [minmax_air_cell[0]*gradient_scale_factor, (minmax_air_cell[1])*gradient_scale_factor + 1]]
-        airCellTable = BoneThicknessMappingLogic.build_color_table('AirCellColorMap', iy[-1])
-        for i in range(iy[0], iy[-1]): calculate_and_set_colour(airCellTable, i, hue=0.696 - p(i, iy[-1], iy[0]) * 0.571, sat=0.9, val=0.9)
+        airCellTableNode = BoneThicknessMappingLogic.build_color_table_node('AirCellColorMap', iy[-1])
+        for i in range(iy[0], iy[-1]): calculate_and_set_colour(airCellTableNode, i, hue=0.696 - p(i, iy[-1], iy[0]) * 0.571, sat=0.9, val=0.9)
 
-        return thicknessTable, airCellTable
+        return thicknessTableNode, airCellTable
 
     @staticmethod
     def set_scalar_colour_bar_state(state, color_node_id=None):
