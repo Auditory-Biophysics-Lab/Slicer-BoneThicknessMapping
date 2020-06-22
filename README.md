@@ -7,7 +7,7 @@
 </p>
 
 ## About
-This [3D Slicer](https://www.slicer.org/) module calculates bone thickness of a volume and overlays a gradient map (with legend) over the segmented volume in 3D.
+A [3D Slicer](https://www.slicer.org/) extension capable of rendering a clinical bone scan in 3D with an overlayed gradient colour map depicting the bone-thickness.
 
 ## Algorithm Procedure
 1. Convert input volume to Slicer segmentation
