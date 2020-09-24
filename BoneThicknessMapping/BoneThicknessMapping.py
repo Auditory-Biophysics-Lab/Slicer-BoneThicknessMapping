@@ -57,6 +57,17 @@ class InterfaceTools:
         return s
 
     @staticmethod
+    def build_combo_box(items, current_index_changed):
+        comboBox = qt.QComboBox()
+        comboBox.addItems(items)
+        comboBox.setFixedWidth(350)
+        comboBox.connect("currentIndexChanged(QString)", current_index_changed)
+        box = qt.QHBoxLayout()
+        box.addStretch()
+        box.addWidget(comboBox)
+        return box
+
+    @staticmethod
     def build_spin_box(minimum, maximum, click=None, decimals=0, step=1.0, initial=0.0, width=None):
         box = qt.QDoubleSpinBox()
         box.setMinimum(minimum)
@@ -108,6 +119,7 @@ class InterfaceTools:
         higherSb = InterfaceTools.build_spin_box(lb, hb, decimals=decimals, step=step, initial=initial[1], click=set_max, width=80)
         box.addWidget(higherSb)
         box.addWidget(InterfaceTools.build_label(units, 30))
+
         def set_boxes(value=None, enabled=None):
             if value is not None:
                 set_min(value[0])
@@ -124,13 +136,21 @@ class BoneThicknessMappingType:
     THICKNESS = 'Thickness to dura'
     AIR_CELL = 'Distance to first air cell'
 
+class BoneSegmentationLowerBound:
+    MANUAL = 'Manual'
+    CLINICAL = 'Clinical CT'
+    CONE_BEAM = 'Cone Beam CT'
+
+class BoneDepthMappingPresets:
+    MANUAL = 'Manual'
+    BCI601 = 'BCI 601'
+    BCI602 = 'BCI 602'
 
 class BoneThicknessMappingState:
     WAITING = 1
     READY = 2
     EXECUTING = 3
     FINISHED = 4
-
 
 class BoneThicknessMappingQuality:
     VERY_LOW = 'VERY LOW (ray every 4 dimensional units)'
@@ -241,10 +261,25 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         layout = qt.QFormLayout(self.configuration_tools)
 
         # threshold
+        threshBox, setThresh = InterfaceTools.build_min_max(self.CONFIG_segmentThresholdRange, step=5.0, decimals=2, lb=-4000, hb=4000, units='')
+
+        def current_index_changed(string):
+            if string == BoneSegmentationLowerBound.MANUAL:
+                setThresh([600.0, 3071.0], enabled=True)
+            elif string == BoneSegmentationLowerBound.CLINICAL:
+                setThresh([650.0, 3071.0], enabled=False)
+            elif string == BoneSegmentationLowerBound.CONE_BEAM:
+                setThresh([750.0, 3071.0], enabled=False)
+        presets = InterfaceTools.build_combo_box(
+            items=[BoneSegmentationLowerBound.MANUAL, BoneSegmentationLowerBound.CLINICAL, BoneSegmentationLowerBound.CONE_BEAM],
+            current_index_changed=current_index_changed
+        )
+
+
         group_box = qt.QGroupBox('Auto segmenting')
         group_layout = qt.QFormLayout(group_box)
-        threshBox, setThresh = InterfaceTools.build_min_max(self.CONFIG_segmentThresholdRange, step=5.0, decimals=2, lb=-4000, hb=4000, units='')
-        group_layout.addRow("Otsu threshold range", threshBox)
+        group_layout.addRow("Presets", presets)
+        group_layout.addRow("Otsu bone-threshold range", threshBox)
         layout.addRow(group_box)
 
         # ray direction
@@ -291,38 +326,32 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         # min/max
         skullBox, setSkullBoxes = InterfaceTools.build_min_max(self.CONFIG_minMaxSkullThickness)
         airCellBox, setAirBoxes = InterfaceTools.build_min_max(self.CONFIG_minMaxAirCell)
-        comboBox = qt.QComboBox()
-        comboBox.addItems(['Manual', 'BCI 601', 'BCI 602'])
-        comboBox.setFixedWidth(350)
-        def current_index_changed(string):
-            if string == 'BCI 601':
-                setSkullBoxes([0.0, 8.7], enabled=False)
-                setAirBoxes([0.0, 4.0], enabled=False)
-            elif string == 'BCI 602':
-                setSkullBoxes([0.0, 4.5], enabled=False)
-                setAirBoxes([0.0, 4.0], enabled=False)
-            elif string == 'Manual':
+
+        def pick_depth_preset(string):
+            if string == BoneDepthMappingPresets.MANUAL:
                 setSkullBoxes(enabled=True)
                 setAirBoxes(enabled=True)
-        comboBox.connect("currentIndexChanged(QString)", current_index_changed)
-        box = qt.QHBoxLayout()
-        box.addStretch()
-        box.addWidget(comboBox)
+            elif string == BoneDepthMappingPresets.BCI601:
+                setSkullBoxes([0.0, 8.7], enabled=False)
+                setAirBoxes([0.0, 4.0], enabled=False)
+            elif string == BoneDepthMappingPresets.BCI602:
+                setSkullBoxes([0.0, 4.5], enabled=False)
+                setAirBoxes([0.0, 4.0], enabled=False)
+        comboBox = InterfaceTools.build_combo_box(
+            items=[BoneDepthMappingPresets.MANUAL, BoneDepthMappingPresets.BCI601, BoneDepthMappingPresets.BCI602],
+            current_index_changed=pick_depth_preset
+        )
 
         # add ray-casting box
         group_box = qt.QGroupBox('Depth mapping')
         g_layout = qt.QFormLayout(group_box)
-        g_layout.addRow('Depth preset: ', box)
+        g_layout.addRow('Depth preset: ', comboBox)
         g_layout.addRow("Thickness depth: ", skullBox)
         g_layout.addRow("Air cell depth: ", airCellBox)
         layout.addRow(InterfaceTools.build_vertical_space())
         layout.addRow(group_box)
 
         # quality
-        comboBox = qt.QComboBox()
-        comboBox.addItems([BoneThicknessMappingQuality.VERY_LOW, BoneThicknessMappingQuality.LOW, BoneThicknessMappingQuality.MEDIUM, BoneThicknessMappingQuality.HIGH, BoneThicknessMappingQuality.VERY_HIGH, BoneThicknessMappingQuality.EXTREME])
-        comboBox.setCurrentIndex(2)
-        comboBox.setFixedWidth(350)
         def current_index_changed(string):
             if string == BoneThicknessMappingQuality.VERY_LOW: self.CONFIG_precision = 4.0
             elif string == BoneThicknessMappingQuality.LOW: self.CONFIG_precision = 2.0
@@ -330,6 +359,10 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
             elif string == BoneThicknessMappingQuality.HIGH: self.CONFIG_precision = 0.50
             elif string == BoneThicknessMappingQuality.VERY_HIGH: self.CONFIG_precision = 0.25
             elif string == BoneThicknessMappingQuality.EXTREME: self.CONFIG_precision = 0.125
+        comboBox = qt.QComboBox()
+        comboBox.addItems([BoneThicknessMappingQuality.VERY_LOW, BoneThicknessMappingQuality.LOW, BoneThicknessMappingQuality.MEDIUM, BoneThicknessMappingQuality.HIGH, BoneThicknessMappingQuality.VERY_HIGH, BoneThicknessMappingQuality.EXTREME])
+        comboBox.setCurrentIndex(2)
+        comboBox.setFixedWidth(350)
         comboBox.connect("currentIndexChanged(QString)", current_index_changed)
         box = qt.QHBoxLayout()
         box.addStretch()
@@ -736,16 +769,17 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         ]
 
         def build_ray(i, j):
-            start = [None, None, None]
-            start[castIndex] = depthIncrements[0] + negated*100
-            start[castPlaneIndices[0]] = horizontalIncrements[0] + i*precision
-            start[castPlaneIndices[1]] = verticalIncrements[0] + j*precision
-            end = start[:]
-            end[castIndex] = depthIncrements[1] - negated*100
-            return start, end
+            p1 = [None, None, None]
+            p1[castIndex] = depthIncrements[0] + negated*100
+            p1[castPlaneIndices[0]] = horizontalIncrements[0] + i*precision
+            p1[castPlaneIndices[1]] = verticalIncrements[0] + j*precision
+            p2 = p1[:]
+            p2[castIndex] = depthIncrements[1] - negated*100
+            return p1, p2
 
         # cast rays
-        update_status(text="Casting " + str(int(castPlaneIncrements[0]*castPlaneIncrements[1])) + " rays...", progress=44); startTime = time.time()
+        update_status(text="Casting " + str(int(castPlaneIncrements[0]*castPlaneIncrements[1])) + " rays...", progress=44)
+        startTime = time.time()
         points, temporaryHitPoint = vtk.vtkPoints(), [0.0, 0.0, 0.0]
         hitPointMatrix = [[None for j in range(castPlaneIncrements[1])] for i in range(castPlaneIncrements[0])]
         for i in range(len(hitPointMatrix)):
@@ -810,7 +844,8 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         cellLocator.BuildLocator()
 
         total = len(hit_point_list)
-        update_status(text="Calculating thickness (may take long, " + str(total) + " rays)...", progress=82); startTime = time.time()
+        update_status(text="Calculating thickness (may take long, " + str(total) + " rays)...", progress=82)
+        startTime = time.time()
 
         def init_array(name):
             a = vtk.vtkFloatArray()
@@ -903,14 +938,3 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         if state is 0 or color_node_id is None: return
         slicer.util.findChildren(colorWidget, 'ColorTableComboBox')[0].setCurrentNodeID(color_node_id)
         slicer.util.findChildren(colorWidget, 'UseColorNameAsLabelCheckBox')[0].setChecked(True)
-
-class SkullThicknessMappingTest(ScriptedLoadableModuleTest):
-    def setUp(self):
-        pass
-
-    def runTest(self):
-        self.setUp()
-        self.test_SkullThicknessMapping1()
-
-    def test_SkullThicknessMapping1(self):
-        pass
