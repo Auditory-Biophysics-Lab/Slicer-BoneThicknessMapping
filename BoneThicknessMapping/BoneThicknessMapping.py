@@ -928,7 +928,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         airCellTableNode = BoneThicknessMappingLogic.build_color_table_node('AirCellColorMap', iy[-1])
         for i in range(iy[0], iy[-1]): calculate_and_set_colour(airCellTableNode, i, hue=0.696 - p(i, iy[-1], iy[0]) * 0.571, sat=0.9, val=0.9)
 
-        return thicknessTableNode, airCellTable
+        return thicknessTableNode, airCellTableNode
 
     @staticmethod
     def set_scalar_colour_bar_state(state, color_node_id=None):
