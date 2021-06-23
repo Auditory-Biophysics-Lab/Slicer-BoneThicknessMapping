@@ -39,7 +39,7 @@ A [3D Slicer](https://www.slicer.org/) extension capable of rendering a clinical
 > Otsu threshold range: MIN of 611.0, MAX of 4000.0 <br>
 > Cast direction: 'A' <br>
 > (optional) Render quality: 'High' <br>
-> Note: A valid otsu threshold range is required for accurate depth mapping. Sufficient ranges can be found using the 3D Slicer Segmentation Editor's thresholding tool.
+Note: A valid otsu threshold range is required for accurate depth mapping. Sufficient ranges can be found using the 3D Slicer Segmentation Editor's thresholding tool.
 ![Config](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/config.png?raw=true)
 6. Click the 'Execute' button. Once completed the following result should be displayed:
 ![Complete](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/complete.png?raw=true)
