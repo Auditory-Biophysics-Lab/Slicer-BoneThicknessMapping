@@ -36,10 +36,12 @@ A [3D Slicer](https://www.slicer.org/) extension capable of rendering a clinical
 4. Using the input volume selector, select either the PreDentalSurgery or PostDentalSurgery volume
 ![Input](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/input.png?raw=true)
 5. Expand the configuration panel and input the following:
+![Config](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/config.png?raw=true)
 > Otsu threshold range: MIN of 611.0, MAX of 4000.0 <br>
 > Cast direction: 'A' <br>
-> (optional) Render quality: 'High' <br>
+> (optional) Render quality: 'High
+
 Note: A valid otsu threshold range is required for accurate depth mapping. Sufficient ranges can be found using the 3D Slicer Segmentation Editor's thresholding tool.
-![Config](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/config.png?raw=true)
+
 6. Click the 'Execute' button. Once completed the following result should be displayed:
 ![Complete](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/complete.png?raw=true)
