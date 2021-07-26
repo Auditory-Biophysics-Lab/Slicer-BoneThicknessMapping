@@ -7,7 +7,7 @@
 </p>
 
 ## About
-A [3D Slicer](https://www.slicer.org/) extension capable of rendering a clinical bone scan in 3D with an overlayed gradient colour map depicting the bone-thickness.
+A [3D Slicer](https://www.slicer.org/) extension capable of rendering a clinical bone scan in 3D with an overlayed gradient colour map depicting the bone-thickness. Available within 3D Slicer from the Extension Manager module.
 
 ## Algorithm Procedure
 1. Convert input volume to Slicer segmentation
@@ -20,7 +20,7 @@ A [3D Slicer](https://www.slicer.org/) extension capable of rendering a clinical
 ## Screenshot
 ![Screenshot](https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/general_screenshot.png?raw=true)
 
-## Installation
+## Manual Installation
 1. Download repository project folder
 2. Open 3D Slicer and navigate to the module 'Extension Wizard' (Modules>Developer Tools>Extension Wizard)
 3. Click 'Select Extension'
