@@ -584,8 +584,8 @@ class BoneThicknessMappingWidget(ScriptedLoadableModuleWidget):
         # BoneThicknessMappingLogic.reset_view(self.CONFIG_rayCastAxis)
 
     def click_toggle_scalar_bar(self, state):
-        if state is 0: BoneThicknessMappingLogic.set_scalar_colour_bar_state(0)
-        elif state is 2:
+        if state == 0: BoneThicknessMappingLogic.set_scalar_colour_bar_state(0)
+        elif state == 2:
             if self.displayThicknessSelector.isChecked(): BoneThicknessMappingLogic.set_scalar_colour_bar_state(1, self.thicknessColourNode)
             elif self.displayFirstAirCellSelector.isChecked(): BoneThicknessMappingLogic.set_scalar_colour_bar_state(1, self.airCellColourNode)
 
@@ -890,7 +890,7 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
                 skullThicknessArray.InsertTuple1(hitPoint.pid, 0)
                 airCellDistanceArray.InsertTuple1(hitPoint.pid, 0)
             # update rays casted status
-            if i % 200 == 0: update_status(text="Calculating thickness (~{0} of {1} rays)".format(i, total), progress=82 + int(round((i*1.0/total*1.0)*18.0)))
+            if i % 200 == 0: update_status(text=f"Calculating thickness (~{i} of {total} rays)", progress=82 + int(round((i*1.0/total*1.0)*18.0)))
         update_status(text="Finished thickness calculation in " + str("%.1f" % (time.time() - startTime)) + "s...", progress=100)
         return skullThicknessArray, airCellDistanceArray
 
@@ -935,6 +935,6 @@ class BoneThicknessMappingLogic(ScriptedLoadableModuleLogic):
         colorWidget = slicer.modules.colors.widgetRepresentation()
         ctkBar = slicer.util.findChildren(colorWidget, name='VTKScalarBar')[0]
         ctkBar.setDisplay(state)
-        if state is 0 or color_node_id is None: return
+        if state == 0 or color_node_id is None: return
         slicer.util.findChildren(colorWidget, 'ColorTableComboBox')[0].setCurrentNodeID(color_node_id)
         slicer.util.findChildren(colorWidget, 'UseColorNameAsLabelCheckBox')[0].setChecked(True)
