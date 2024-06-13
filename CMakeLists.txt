@@ -8,8 +8,8 @@ set(EXTENSION_HOMEPAGE "https://github.com/Auditory-Biophysics-Lab/SlicerBoneThi
 set(EXTENSION_CATEGORY "Shape Analysis")
 set(EXTENSION_CONTRIBUTORS "Evan Simpson (HML & SKA Lab, Western University)")
 set(EXTENSION_DESCRIPTION "3D Slicer extension that calculates the bone thickness of a volume using VTK ray-casting.")
-set(EXTENSION_ICONURL "https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/BoneThicknessMapping/Resources/Icons/icon128.png")
-set(EXTENSION_SCREENSHOTURLS "https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/Images/general_screenshot.png https://github.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/blob/master/Images/complete.png")
+set(EXTENSION_ICONURL "https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/BoneThicknessMapping.png")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/Auditory-Biophysics-Lab/SlicerBoneThicknessMappingExtension/master/Images/general_screenshot.png https://raw.githubusercontent.com/Auditory-Biophysics-Lab/Slicer-BoneThicknessMapping/master/Images/complete.png")
 set(EXTENSION_DEPENDS "NA")
 
 #-----------------------------------------------------------------------------
